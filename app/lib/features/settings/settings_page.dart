@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../core/form_kit.dart';
-import '../../core/providers.dart';
+import '../../core/errors.dart';
 import '../../core/widgets.dart';
+import '../../data/providers.dart';
 
 /// The company details the website shows (footer, contact page...). Only admins reach this page,
 /// and the database also refuses anyone else.
@@ -28,10 +28,7 @@ const _settings = [
   _Setting('about_short', 'About us (short)', multiline: true),
 ];
 
-final settingsProvider = FutureProvider.autoDispose<Map<String, String>>((ref) async {
-  final rows = await ref.watch(supabaseProvider).from('company_settings').select('key, value');
-  return {for (final r in rows) '${r['key']}': '${r['value']}'};
-});
+final settingsProvider = FutureProvider.autoDispose<Map<String, String>>((ref) => ref.watch(settingsRepoProvider).all());
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -71,15 +68,14 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   Future<void> _save() async {
     setState(() => _busy = true);
     try {
-      final rows = [
+      final changed = {
         for (final s in _settings)
-          if (_c[s.key]!.text.trim() != (widget.initial[s.key] ?? ''))
-            {'key': s.key, 'value': _c[s.key]!.text.trim(), 'is_public': true},
-      ];
-      if (rows.isEmpty) {
+          if (_c[s.key]!.text.trim() != (widget.initial[s.key] ?? '')) s.key: _c[s.key]!.text.trim(),
+      };
+      if (changed.isEmpty) {
         if (mounted) showOk(context, 'Nothing changed.');
       } else {
-        await ref.read(supabaseProvider).from('company_settings').upsert(rows, onConflict: 'key');
+        await ref.read(settingsRepoProvider).save(changed);
         ref.invalidate(settingsProvider);
         if (mounted) showOk(context, 'Saved.');
       }

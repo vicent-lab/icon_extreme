@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/theme.dart';
+import '../../core/design/theme.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -85,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 28),
                     Text('Sign in', style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 4),
-                    Text('Use your company account.', style: t.bodyMedium),
+                    Text('Use the account ICON invited you with.', style: t.bodyMedium),
                     const SizedBox(height: 24),
                     TextField(
                       controller: _email,
@@ -112,7 +113,11 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 14),
                       Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                     ],
-                    const SizedBox(height: 22),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(onPressed: () => context.go('/forgot'), child: const Text('Forgot password?')),
+                    ),
+                    const SizedBox(height: 10),
                     OutlinedButton.icon(
                       onPressed: _busy ? null : _google,
                       icon: const Icon(Icons.g_mobiledata, size: 28),

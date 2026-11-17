@@ -1,13 +1,13 @@
-import 'dart:typed_data';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'providers.dart';
-import 'widgets.dart';
+import '../../data/providers.dart';
+import '../../data/repositories/storage_repository.dart';
+import '../errors.dart';
+import '../format.dart';
+import '../widgets.dart';
+import 'record_store.dart';
 
 /// One input in a form. A screen lists its fields; the kit does the rest
 /// (validation, saving, friendly errors). New screen = new list, no new form code.
@@ -47,50 +47,6 @@ String slugify(String s) {
   return out.isEmpty ? 'item' : out;
 }
 
-/// Turns database errors into plain sentences a site manager understands.
-String friendlyError(Object e) {
-  if (e is PostgrestException) {
-    final m = e.message.toLowerCase();
-    if (e.code == '23505') return 'That name/link is already used. Change it a little and try again.';
-    if (e.code == '23514') {
-      if (m.contains('client_permission') || m.contains('testimonials')) {
-        return 'A testimonial can only be published after the client gave permission.';
-      }
-      if (m.contains('check')) return 'One of the values is not allowed (for example an end date before the start date).';
-    }
-    if (e.code == '23503') return 'This is still used by something else, so it cannot be removed.';
-    if (e.code == '42501' || m.contains('row-level security') || m.contains('permission denied')) {
-      return 'Your role is not allowed to do this.';
-    }
-    return 'Could not save: ${e.message}';
-  }
-  if (e is StorageException) return 'Upload failed: ${e.message}';
-  return 'Something went wrong. Check your internet and try again.';
-}
-
-const _mime = {
-  'pdf': 'application/pdf',
-  'jpg': 'image/jpeg',
-  'jpeg': 'image/jpeg',
-  'png': 'image/png',
-  'webp': 'image/webp',
-  'zip': 'application/zip',
-  'doc': 'application/msword',
-  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'xls': 'application/vnd.ms-excel',
-  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-};
-
-String _safeName(String name) => name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9._-]+'), '-');
-
-/// Uploads bytes and returns the storage path. Throws a readable error if it fails.
-Future<String> uploadBytes(SupabaseClient c, String bucket, String folder, String fileName, Uint8List bytes) async {
-  final ext = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : '';
-  final path = '$folder/${DateTime.now().millisecondsSinceEpoch}-${_safeName(fileName)}';
-  await c.storage.from(bucket).uploadBinary(path, bytes, fileOptions: FileOptions(contentType: _mime[ext]));
-  return path;
-}
-
 Future<bool> confirmDelete(BuildContext context, String what) async {
   final ok = await showDialog<bool>(
     context: context,
@@ -111,7 +67,7 @@ Future<bool> confirmDelete(BuildContext context, String what) async {
 Future<bool> showRecordForm(
   BuildContext context, {
   required String title,
-  required String table,
+  required RecordStore store,
   required List<FieldSpec> fields,
   Map<String, dynamic>? initial,
   Map<String, dynamic> extra = const {},
@@ -123,7 +79,7 @@ Future<bool> showRecordForm(
     barrierDismissible: false,
     builder: (_) => _RecordDialog(
       title: title,
-      table: table,
+      store: store,
       fields: fields,
       initial: initial,
       extra: extra,
@@ -137,7 +93,7 @@ Future<bool> showRecordForm(
 class _RecordDialog extends ConsumerStatefulWidget {
   const _RecordDialog({
     required this.title,
-    required this.table,
+    required this.store,
     required this.fields,
     required this.initial,
     required this.extra,
@@ -145,7 +101,8 @@ class _RecordDialog extends ConsumerStatefulWidget {
     this.beforeSave,
   });
   final Map<String, dynamic> Function(Map<String, dynamic> data)? beforeSave;
-  final String title, table;
+  final String title;
+  final RecordStore store;
   final List<FieldSpec> fields;
   final Map<String, dynamic>? initial;
   final Map<String, dynamic> extra;
@@ -180,7 +137,7 @@ class _RecordDialogState extends ConsumerState<_RecordDialog> {
           _value[f.key] = v ?? (f.options.isNotEmpty ? f.options.first.value : null);
         case FieldKind.date:
           // required dates (log date, expense date) start on today for new records
-          _value[f.key] = v ?? (f.required && !_editing ? DateFormat('yyyy-MM-dd').format(DateTime.now()) : null);
+          _value[f.key] = v ?? (f.required && !_editing ? isoDay(DateTime.now()) : null);
         case FieldKind.image:
           _value[f.key] = v;
       }
@@ -223,14 +180,13 @@ class _RecordDialogState extends ConsumerState<_RecordDialog> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    final client = ref.read(supabaseProvider);
     try {
       var data = {..._collect(), ...widget.extra};
       if (widget.beforeSave != null) data = widget.beforeSave!(data);
       if (_editing) {
-        await client.from(widget.table).update(data).eq('id', widget.initial!['id']);
+        await widget.store.update(widget.initial!['id'] as Object, data);
       } else {
-        await client.from(widget.table).insert(data);
+        await widget.store.insert(data);
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -245,9 +201,9 @@ class _RecordDialogState extends ConsumerState<_RecordDialog> {
     if (!await confirmDelete(context, 'This ${widget.title.toLowerCase()}')) return;
     setState(() => _busy = true);
     try {
-      final res = await ref.read(supabaseProvider).from(widget.table).delete().eq('id', widget.initial!['id']).select('id');
+      final removed = await widget.store.delete(widget.initial!['id'] as Object);
       if (!mounted) return;
-      if ((res as List).isEmpty) {
+      if (!removed) {
         setState(() => _busy = false);
         showError(context, 'Your role is not allowed to delete this.');
         return;
@@ -270,10 +226,10 @@ class _RecordDialogState extends ConsumerState<_RecordDialog> {
     }
     setState(() => _busy = true);
     try {
-      final c = ref.read(supabaseProvider);
-      final path = await uploadBytes(c, 'site-media', f.folder, file.name, await file.readAsBytes());
+      final storage = ref.read(storageRepoProvider);
+      final path = await storage.upload(StorageRepository.publicBucket, f.folder, file.name, await file.readAsBytes());
       // Public bucket: store the full link so the website can show it directly.
-      _value[f.key] = c.storage.from('site-media').getPublicUrl(path);
+      _value[f.key] = storage.publicUrl(path);
     } catch (e) {
       if (mounted) showError(context, friendlyError(e));
     }
@@ -289,7 +245,7 @@ class _RecordDialogState extends ConsumerState<_RecordDialog> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (d != null) setState(() => _value[f.key] = DateFormat('yyyy-MM-dd').format(d));
+    if (d != null) setState(() => _value[f.key] = isoDay(d));
   }
 
   Widget _field(FieldSpec f) {

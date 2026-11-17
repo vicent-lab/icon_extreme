@@ -1,9 +1,10 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 
-import '../../core/form_kit.dart';
-import '../../core/providers.dart';
+import '../../core/errors.dart';
+import '../../core/forms/form_kit.dart';
 import '../../core/widgets.dart';
+import '../../data/providers.dart';
 
 /// One screen definition per kind of website content. Adding a new content type = one new spec.
 class ContentSpec {
@@ -79,8 +80,7 @@ class ContentSpec {
 }
 
 final contentProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, ContentSpec>((ref, spec) async {
-  final rows = await ref.watch(supabaseProvider).from(spec.table).select().order('id', ascending: false).limit(200);
-  return List<Map<String, dynamic>>.from(rows);
+  return ref.watch(contentRepoProvider).list(spec.table);
 });
 
 class ContentPage extends ConsumerWidget {
@@ -89,25 +89,25 @@ class ContentPage extends ConsumerWidget {
 
   /// Adds the choices that come from other tables (blog category, testimonial project).
   Future<List<FieldSpec>> _fields(WidgetRef ref) async {
-    final c = ref.read(supabaseProvider);
+    final repo = ref.read(contentRepoProvider);
     final f = [...spec.fields];
     try {
       if (spec.table == 'blog_posts') {
-        final cats = await c.from('blog_categories').select('id, name').order('name');
+        final cats = await repo.choices('blog_categories', 'name');
         f.insert(
           4,
           FieldSpec('category_id', 'Category', kind: FieldKind.select, options: [
             const Opt('', 'No category'),
-            for (final r in cats) Opt('${r['id']}', '${r['name']}'),
+            for (final (id, name) in cats) Opt(id, name),
           ]),
         );
       } else if (spec.table == 'testimonials') {
-        final projects = await c.from('projects').select('id, title').order('title');
+        final projects = await repo.choices('projects', 'title');
         f.insert(
           3,
           FieldSpec('project_id', 'Related project', kind: FieldKind.select, options: [
             const Opt('', 'None'),
-            for (final r in projects) Opt('${r['id']}', '${r['title']}'),
+            for (final (id, title) in projects) Opt(id, title),
           ]),
         );
       }
@@ -136,7 +136,7 @@ class ContentPage extends ConsumerWidget {
     final saved = await showRecordForm(
       context,
       title: spec.noun,
-      table: spec.table,
+      store: ref.read(tableStoreProvider(spec.table)),
       fields: fields,
       initial: row == null ? null : {...row, 'category_id': '${row['category_id'] ?? ''}', 'project_id': '${row['project_id'] ?? ''}'},
       beforeSave: (d) => _prepare(d, row),
@@ -145,7 +145,7 @@ class ContentPage extends ConsumerWidget {
   }
 
   Future<void> _newCategory(BuildContext context, WidgetRef ref) async {
-    final saved = await showRecordForm(context, title: 'Category', table: 'blog_categories', fields: const [
+    final saved = await showRecordForm(context, title: 'Category', store: ref.read(tableStoreProvider('blog_categories')), fields: const [
       FieldSpec('name', 'Category name', required: true),
       FieldSpec('slug', 'Web address', kind: FieldKind.slug, from: 'name'),
       FieldSpec('description', 'Description', kind: FieldKind.multiline),
@@ -169,7 +169,7 @@ class ContentPage extends ConsumerWidget {
           value: ref.watch(contentProvider(spec)),
           onRetry: () => ref.invalidate(contentProvider(spec)),
           builder: (rows) => rows.isEmpty
-              ? Center(child: Text('No ${spec.title.toLowerCase()} yet. Press "Add ${spec.noun.toLowerCase()}" to create the first one.'))
+              ? EmptyState('No ${spec.title.toLowerCase()} yet. Press "Add ${spec.noun.toLowerCase()}" to create the first one.')
               : ListView.separated(
                   padding: const EdgeInsets.only(bottom: 24),
                   itemCount: rows.length,
@@ -193,7 +193,7 @@ class ContentPage extends ConsumerWidget {
                                 patch['published_at'] = DateTime.now().toUtc().toIso8601String();
                               }
                               try {
-                                await ref.read(supabaseProvider).from(spec.table).update(patch).eq('id', r['id']);
+                                await ref.read(contentRepoProvider).patch(spec.table, r['id'] as Object, patch);
                                 ref.invalidate(contentProvider(spec));
                               } catch (e) {
                                 if (context.mounted) showError(context, friendlyError(e));

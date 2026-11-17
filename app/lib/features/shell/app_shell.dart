@@ -1,11 +1,12 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/providers.dart';
+import '../../core/design/theme.dart';
 import '../../core/roles.dart';
-import '../../core/theme.dart';
+import '../../core/widgets.dart';
+import '../../data/providers.dart';
 
 class _Item {
   const _Item(this.section, this.path, this.label, this.icon);
@@ -54,10 +55,10 @@ class AppShell extends ConsumerWidget {
       context.go(p);
       if (!wide) Navigator.of(context).maybePop();
     });
-    final user = _UserTile(name: profile?.fullName ?? '', role: role);
+    final user = _UserTile(name: profile?.displayName ?? '', role: role);
 
     final drawerBody = Column(children: [
-      const _Brand(),
+      const Padding(padding: EdgeInsets.fromLTRB(20, 28, 20, 16), child: BrandMark()),
       Expanded(child: nav),
       const Divider(),
       user,
@@ -78,23 +79,6 @@ class AppShell extends ConsumerWidget {
       body: child,
     );
   }
-}
-
-class _Brand extends StatelessWidget {
-  const _Brand();
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
-        child: Row(children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(color: Brand.ink, borderRadius: BorderRadius.circular(9)),
-            child: const Icon(Icons.apartment, color: Brand.gold, size: 20),
-          ),
-          const SizedBox(width: 10),
-          Text('ICON', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-        ]),
-      );
 }
 
 class _NavList extends StatelessWidget {
@@ -143,8 +127,9 @@ class _UserTile extends StatelessWidget {
   final AppRole role;
   @override
   Widget build(BuildContext context) => ListTile(
+        onTap: () => context.go('/profile'),
         title: Text(name.isEmpty ? 'Signed in' : name, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Text(role.label),
+        subtitle: Text('${role.label} · My profile'),
         trailing: IconButton(
           tooltip: 'Sign out',
           icon: const Icon(Icons.logout),
