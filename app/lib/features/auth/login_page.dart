@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -29,6 +30,25 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _error = 'The email or password was not recognised.');
     } catch (_) {
       setState(() => _error = 'Cannot reach the server. Check your internet and try again.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Where Google sends the person back to. Must be listed in Supabase > Authentication > URL Configuration.
+  static const _mobileRedirect = 'com.iconconstruction.icon://login-callback/';
+
+  Future<void> _google() async {
+    if (_busy) return;
+    setState(() { _busy = true; _error = null; });
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? Uri.base.origin : _mobileRedirect,
+      );
+      // On web the page leaves for Google and comes back signed in. Nothing more to do here.
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Google sign-in could not start. Try again, or use your email.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -91,6 +111,22 @@ class _LoginPageState extends State<LoginPage> {
                       Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                     ],
                     const SizedBox(height: 22),
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : _google,
+                      icon: const Icon(Icons.g_mobiledata, size: 28),
+                      label: const Text('Continue with Google'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Row(children: [
+                      Expanded(child: Divider()),
+                      Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text('or')),
+                      Expanded(child: Divider()),
+                    ]),
+                    const SizedBox(height: 14),
                     FilledButton(
                       onPressed: _busy ? null : _submit,
                       child: _busy
