@@ -45,6 +45,8 @@ class _LoginPageState extends State<LoginPage> {
       await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: kIsWeb ? Uri.base.origin : _mobileRedirect,
+        // Always show Google's account chooser, so you can switch accounts after signing out.
+        queryParams: const {'prompt': 'select_account'},
       );
       // On web the page leaves for Google and comes back signed in. Nothing more to do here.
     } catch (_) {
