@@ -11,7 +11,9 @@ import 'features/auth/login_page.dart';
 import 'features/content/content_page.dart';
 import 'features/dashboard/dashboard_page.dart';
 import 'features/leads/leads_page.dart';
+import 'features/projects/project_detail_page.dart';
 import 'features/projects/projects_page.dart';
+import 'features/settings/settings_page.dart';
 import 'features/shell/app_shell.dart';
 import 'features/users/users_page.dart';
 
@@ -67,11 +69,19 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/', builder: (_, _) => gate(Section.dashboard, const DashboardPage())),
           GoRoute(path: '/leads', builder: (_, _) => gate(Section.leads, const LeadsPage())),
           GoRoute(path: '/projects', builder: (_, _) => gate(Section.projects, const ProjectsPage())),
+          GoRoute(
+            path: '/projects/:id',
+            builder: (_, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+              return gate(Section.projects, id == null ? const _NoAccess() : ProjectDetailPage(id: id));
+            },
+          ),
           GoRoute(path: '/services', builder: (_, _) => gate(Section.services, ContentPage(spec: ContentSpec.services))),
           GoRoute(path: '/team', builder: (_, _) => gate(Section.team, ContentPage(spec: ContentSpec.team))),
           GoRoute(path: '/testimonials', builder: (_, _) => gate(Section.testimonials, ContentPage(spec: ContentSpec.testimonials))),
           GoRoute(path: '/blog', builder: (_, _) => gate(Section.blog, ContentPage(spec: ContentSpec.blog))),
           GoRoute(path: '/users', builder: (_, _) => gate(Section.users, const UsersPage())),
+          GoRoute(path: '/settings', builder: (_, _) => gate(Section.settings, const SettingsPage())),
         ],
       ),
     ],

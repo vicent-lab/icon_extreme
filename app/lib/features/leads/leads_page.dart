@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/form_kit.dart';
 import '../../core/providers.dart';
 import '../../core/widgets.dart';
 
@@ -20,6 +21,30 @@ class LeadsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => PageFrame(
         title: 'Leads',
         subtitle: 'Messages and quote requests from the website, as one pipeline.',
+        actions: [
+          FilledButton.icon(
+            onPressed: () async {
+              final saved = await showRecordForm(
+                context,
+                title: 'Lead',
+                table: 'leads',
+                extra: const {'source': 'manual', 'kind': 'contact'},
+                fields: const [
+                  FieldSpec('full_name', 'Name', required: true),
+                  FieldSpec('phone', 'Phone'),
+                  FieldSpec('email', 'Email', required: true),
+                  FieldSpec('project_type', 'Type of work wanted'),
+                  FieldSpec('location', 'Where is the site?'),
+                  FieldSpec('budget_ugx', 'Budget (UGX)', kind: FieldKind.number, min: 0),
+                  FieldSpec('message', 'What they asked for (phone call, walk-in...)', kind: FieldKind.multiline, required: true),
+                ],
+              );
+              if (saved) ref.invalidate(leadsProvider);
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add lead'),
+          ),
+        ],
         child: AsyncBody<List<Map<String, dynamic>>>(
           value: ref.watch(leadsProvider),
           onRetry: () => ref.invalidate(leadsProvider),

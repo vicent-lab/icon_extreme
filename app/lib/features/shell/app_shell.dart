@@ -33,7 +33,10 @@ const _groups = [
     _Item(Section.testimonials, '/testimonials', 'Testimonials', Icons.format_quote_outlined),
     _Item(Section.blog, '/blog', 'Blog', Icons.article_outlined),
   ]),
-  _Group('Admin', [_Item(Section.users, '/users', 'Users & roles', Icons.admin_panel_settings_outlined)]),
+  _Group('Admin', [
+    _Item(Section.users, '/users', 'Users & roles', Icons.admin_panel_settings_outlined),
+    _Item(Section.settings, '/settings', 'Company settings', Icons.settings_outlined),
+  ]),
 ];
 
 class AppShell extends ConsumerWidget {

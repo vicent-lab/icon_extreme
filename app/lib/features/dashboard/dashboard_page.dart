@@ -28,6 +28,9 @@ final dashboardProvider = FutureProvider.autoDispose<List<_Stat>>((ref) async {
     if (canOpen(role, Section.leads)) _Stat('Quoted, waiting', await count('leads', 'stage', 'quoted')),
     if (canOpen(role, Section.projects)) _Stat('Ongoing projects', await count('projects', 'status', 'ongoing')),
     if (canOpen(role, Section.projects)) _Stat('Completed projects', await count('projects', 'status', 'completed')),
+    // schedule data is visible to project runners only (editors would see a misleading 0)
+    if (role == AppRole.superAdmin || role == AppRole.admin || role == AppRole.projectManager)
+      _Stat('Delayed phases', await count('project_phases', 'status', 'delayed')),
   ];
 });
 

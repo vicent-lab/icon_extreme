@@ -19,7 +19,7 @@ enum AppRole {
   bool get isAdmin => this == AppRole.admin || this == AppRole.superAdmin;
 }
 
-enum Section { dashboard, leads, projects, services, team, testimonials, blog, users }
+enum Section { dashboard, leads, projects, services, team, testimonials, blog, users, settings }
 
 /// Which roles may open which section (same rules as the RLS policies).
 const Map<Section, Set<AppRole>> sectionAccess = {
@@ -31,6 +31,7 @@ const Map<Section, Set<AppRole>> sectionAccess = {
   Section.testimonials: {AppRole.superAdmin, AppRole.admin, AppRole.editor},
   Section.blog: {AppRole.superAdmin, AppRole.admin, AppRole.editor},
   Section.users: {AppRole.superAdmin, AppRole.admin},
+  Section.settings: {AppRole.superAdmin, AppRole.admin},
 };
 
 bool canOpen(AppRole role, Section s) => sectionAccess[s]!.contains(role);

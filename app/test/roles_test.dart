@@ -19,6 +19,19 @@ void main() {
     }
   });
 
+  test('only admins open Company settings', () {
+    for (final r in AppRole.values) {
+      expect(canOpen(r, Section.settings), r.isAdmin, reason: r.db);
+    }
+  });
+
+  test('project managers can open projects and leads but not website content or settings', () {
+    expect(canOpen(AppRole.projectManager, Section.projects), isTrue);
+    expect(canOpen(AppRole.projectManager, Section.leads), isTrue);
+    expect(canOpen(AppRole.projectManager, Section.blog), isFalse);
+    expect(canOpen(AppRole.projectManager, Section.settings), isFalse);
+  });
+
   test('support sees leads but not website content; editor the reverse', () {
     expect(canOpen(AppRole.support, Section.leads), isTrue);
     expect(canOpen(AppRole.support, Section.blog), isFalse);
