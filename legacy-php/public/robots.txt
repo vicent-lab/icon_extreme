@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /config/
+Disallow: /database/
+Disallow: /includes/
+
+Allow: /assets/
+
+Sitemap: https://iconconstruction.ug/sitemap.xml

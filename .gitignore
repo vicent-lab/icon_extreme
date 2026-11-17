@@ -1,0 +1,8 @@
+.env
+*.log
+.DS_Store
+legacy-php/assets/uploads/*
+!legacy-php/assets/uploads/.gitkeep
+.mariadb/
+build/
+.dart_tool/
