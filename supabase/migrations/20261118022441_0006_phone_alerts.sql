@@ -36,7 +36,7 @@ grant execute on function public.test_my_alerts() to authenticated;
 -- The function's address and a shared secret live in Supabase Vault (set once, never in this file).
 -- If pg_net or the Vault entries are missing (for example in the test database), this quietly does nothing.
 do $$ begin
-  create extension if not exists pg_net;
+  create extension if not exists pg_net with schema extensions;
 exception when others then raise notice 'pg_net not available here; phone alerts stay off';
 end $$;
 
