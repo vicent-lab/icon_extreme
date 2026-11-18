@@ -1,0 +1,70 @@
+---
+import '../styles/global.css';
+import { getSettings, appUrl } from '../lib/data';
+
+interface Props { title?: string; description?: string; image?: string | null; path?: string }
+const { title, description, image, path = '/' } = Astro.props;
+const s = await getSettings();
+const company = s.company_name || 'ICON Construction Company';
+const pageTitle = title ? `${title} | ${company}` : `${company} | Construction in Uganda`;
+const desc = description || s.about_short || s.tagline || `${company}: what we build and what we have built in Uganda.`;
+const canonical = new URL(path, Astro.site).toString();
+const ld = {
+  '@context': 'https://schema.org',
+  '@type': 'GeneralContractor',
+  name: company,
+  url: Astro.site?.toString(),
+  ...(s.phone ? { telephone: s.phone } : {}),
+  ...(s.email ? { email: s.email } : {}),
+  ...(s.address ? { address: { '@type': 'PostalAddress', streetAddress: s.address, addressCountry: 'UG' } } : {}),
+  areaServed: 'Uganda',
+};
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{pageTitle}</title>
+  <meta name="description" content={desc.slice(0, 160)} />
+  <link rel="canonical" href={canonical} />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="theme-color" content="#17251F" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={desc.slice(0, 200)} />
+  <meta property="og:url" content={canonical} />
+  {image && <meta property="og:image" content={image} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="/"><img src="/favicon.svg" alt="" width="34" height="34" />ICON</a>
+      <nav class="nav" aria-label="Main">
+        <a href="/#services">What we do</a>
+        <a href="/#work">Our work</a>
+        <a href="/#process">How we work</a>
+        <a href="/#contact">Contact</a>
+      </nav>
+      <a class="btn btn-gold" href="/#contact">Request a quote</a>
+    </div>
+  </header>
+  <main id="main"><slot /></main>
+  <footer class="foot">
+    <div class="wrap">
+      <div>© {new Date().getFullYear()} {company}{s.address ? ` · ${s.address}` : ' · Kampala, Uganda'}</div>
+      <nav aria-label="Footer">
+        <a href="/#services">What we do</a>
+        <a href="/#work">Our work</a>
+        <a href="/#contact">Contact</a>
+        <a href={appUrl} rel="nofollow">Team &amp; client login</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

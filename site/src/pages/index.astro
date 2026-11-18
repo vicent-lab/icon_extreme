@@ -1,0 +1,147 @@
+---
+import Base from '../layouts/Base.astro';
+import ContactForm from '../components/ContactForm.astro';
+import { getProjects, getServices, getTestimonials, getTeam, getSettings, mediaUrl, statusLabel } from '../lib/data';
+
+const [projects, services, testimonials, team, s] = await Promise.all([getProjects(), getServices(), getTestimonials(), getTeam(), getSettings()]);
+const company = s.company_name || 'ICON Construction Company';
+const done = projects.filter((p) => p.status === 'completed').length;
+const active = projects.filter((p) => p.status === 'ongoing').length;
+const heroPic = mediaUrl(projects.find((p) => p.featured_image)?.featured_image);
+const wa = s.whatsapp ? s.whatsapp.replace(/[^0-9]/g, '') : '';
+const social = [['Facebook', s.facebook_url], ['Instagram', s.instagram_url], ['LinkedIn', s.linkedin_url]].filter(([, u]) => u);
+---
+<Base image={heroPic}>
+  <section class="hero" style="padding:0">
+    <div class="wrap">
+      <div class="copy">
+        <span class="pill">KAMPALA, UGANDA</span>
+        <h1>{s.tagline || `${company} builds in Uganda.`}</h1>
+        {s.about_short && <p>{s.about_short}</p>}
+        <div class="ctas">
+          {projects.length > 0 && <a class="btn btn-gold" href="#work">See our work</a>}
+          <a class={projects.length > 0 ? 'btn btn-line' : 'btn btn-gold'} href="#contact">Talk to us</a>
+        </div>
+      </div>
+      <div class="pic">
+        <div class="frame">
+          {heroPic ? <img src={heroPic} alt="A project built by ICON" fetchpriority="high" /> : <img class="mark" src="/favicon.svg" alt="" width="140" height="140" />}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {(done > 0 || active > 0) && (
+    <div class="band"><div class="wrap stats">
+      {done > 0 && <div><b>{done}</b><span>Projects completed</span></div>}
+      {active > 0 && <div><b>{active}</b><span>Projects on site right now</span></div>}
+    </div></div>
+  )}
+
+  {services.length > 0 && (
+    <section id="services"><div class="wrap">
+      <span class="eyebrow">What we do</span>
+      <h2>Our services</h2>
+      <div class="cards">
+        {services.map((sv) => (
+          <article class="card">
+            {mediaUrl(sv.image_path) && <img src={mediaUrl(sv.image_path)!} alt="" loading="lazy" style="height:180px;width:100%;object-fit:cover" />}
+            <div class="body"><h3>{sv.name}</h3><p>{sv.short_description}</p></div>
+          </article>
+        ))}
+      </div>
+    </div></section>
+  )}
+
+  {projects.length > 0 && (
+    <section id="work"><div class="wrap">
+      <div class="work-head">
+        <div><span class="eyebrow">Our work</span><h2>What we have built, and what we are building.</h2></div>
+        <div class="filters" role="group" aria-label="Filter projects">
+          <button type="button" data-f="all" aria-pressed="true">All</button>
+          <button type="button" data-f="completed" aria-pressed="false">Completed</button>
+          <button type="button" data-f="ongoing" aria-pressed="false">On site now</button>
+        </div>
+      </div>
+      <div class="projects">
+        {projects.map((p) => (
+          <a class="proj" href={`/projects/${p.slug}/`} data-status={p.status}>
+            <div class="img">
+              {mediaUrl(p.featured_image) && <img src={mediaUrl(p.featured_image)!} alt={p.title} loading="lazy" />}
+              <span class={`tag ${p.status}`}>{statusLabel(p.status)}</span>
+            </div>
+            <div class="info">
+              <small>{p.project_type} · {p.location}</small>
+              <h3>{p.title}</h3>
+              {p.status === 'ongoing' && <div class="bar" aria-label={`${p.progress_pct}% complete`}><i style={`width:${p.progress_pct}%`}></i></div>}
+            </div>
+          </a>
+        ))}
+      </div>
+    </div></section>
+  )}
+
+  <section id="process"><div class="wrap">
+    <span class="eyebrow">How we work</span>
+    <h2>From first call to handover, you know where things stand.</h2>
+    <div class="steps">
+      <div><b>01</b><h3>Talk and visit the site</h3><p>We listen to what you want and look at the site together.</p></div>
+      <div><b>02</b><h3>Plan and quote</h3><p>You get a clear plan, timeline and price before work starts.</p></div>
+      <div><b>03</b><h3>Build, with updates</h3><p>We keep you informed with progress and site updates.</p></div>
+      <div><b>04</b><h3>Handover</h3><p>We walk through the finished work with you and hand over the documents.</p></div>
+    </div>
+  </div></section>
+
+  {team.length > 0 && (
+    <section id="team"><div class="wrap">
+      <span class="eyebrow">The team</span>
+      <h2>The people behind the work</h2>
+      <div class="cards">
+        {team.map((m) => (
+          <article class="card" style="flex-basis:240px">
+            {mediaUrl(m.image_path) && <img src={mediaUrl(m.image_path)!} alt={m.name} loading="lazy" style="height:240px;width:100%;object-fit:cover" />}
+            <div class="body"><h3 style="font-size:18px">{m.name}</h3><p style="margin-top:2px">{m.job_title}</p></div>
+          </article>
+        ))}
+      </div>
+    </div></section>
+  )}
+
+  {testimonials.length > 0 && (
+    <section><div class="wrap">
+      <span class="eyebrow">Clients say</span>
+      <h2 style="margin-bottom:28px">In their words</h2>
+      {testimonials.map((t) => (
+        <blockquote class="quote" style="margin-left:0;margin-right:0"><p>“{t.quote}”</p><cite>{t.client_name}{t.client_role ? `, ${t.client_role}` : ''}{t.company ? `, ${t.company}` : ''}</cite></blockquote>
+      ))}
+    </div></section>
+  )}
+
+  <section id="contact"><div class="wrap contact">
+    <div>
+      <span class="eyebrow">Start a project</span>
+      <h2>Tell us what you want to build.</h2>
+      <p style="color:var(--muted);max-width:440px;margin-top:14px">Your message goes straight to our team.</p>
+      <div class="details">
+        {s.phone && <div><b>Phone</b> <a href={`tel:${s.phone.replace(/\s/g, '')}`}>{s.phone}</a></div>}
+        {wa && <div><b>WhatsApp</b> <a href={`https://wa.me/${wa}`} rel="noopener">{s.whatsapp}</a></div>}
+        {s.email && <div><b>Email</b> <a href={`mailto:${s.email}`}>{s.email}</a></div>}
+        {s.address && <div><b>Office</b> {s.address}</div>}
+        {s.opening_hours && <div><b>Hours</b> {s.opening_hours}</div>}
+        {social.length > 0 && <div>{social.map(([n, u], i) => <span>{i > 0 ? ' · ' : ''}<a href={u!} rel="noopener">{n}</a></span>)}</div>}
+      </div>
+    </div>
+    <div><ContactForm /></div>
+  </div></section>
+</Base>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.filters button');
+  const cards = document.querySelectorAll<HTMLElement>('.proj');
+  buttons.forEach((b) =>
+    b.addEventListener('click', () => {
+      buttons.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      cards.forEach((c) => (c.hidden = b.dataset.f !== 'all' && c.dataset.status !== b.dataset.f));
+    }),
+  );
+</script>

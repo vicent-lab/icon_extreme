@@ -38,3 +38,10 @@ Next: quotes, project phases/site logs, invoices, documents, client portal, publ
 5. Sign in once with Google, then make yourself super admin:
    `update public.profiles set role = 'super_admin' where id = (select id from auth.users where email = 'YOUR_GMAIL');`
 Anyone can sign in with Google, but they start as `client` and see nothing in the staff app until an admin promotes them.
+
+## Public website (`site/`)
+A small Astro project that builds plain, fast HTML pages. It reads published services, projects, team, testimonials and
+company settings from Supabase when it is built, and rebuilds every 30 minutes (and on every change to `site/`).
+The contact form posts to the `submit-lead` Edge Function, which saves a lead. It is deployed to its own Cloudflare Pages
+project (`icon-site`) and never touches the staff/client app (`app/`, project `icon-extreme`).
+Run locally: `cd site && cp .env.example .env && npm install && npm run dev`.

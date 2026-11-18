@@ -1,0 +1,42 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getProjects, getProjectImages, mediaUrl, statusLabel } from '../../lib/data';
+import type { Project } from '../../lib/data';
+
+export async function getStaticPaths() {
+  const projects = await getProjects();
+  return projects.map((p) => ({ params: { slug: p.slug }, props: { p } }));
+}
+const { p } = Astro.props as { p: Project };
+const images = await getProjectImages(p.id);
+const cover = mediaUrl(p.featured_image);
+const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : null);
+const sections = [['The challenge', p.challenge], ['Our solution', p.solution], ['The result', p.results]].filter(([, t]) => t);
+---
+<Base title={p.title} description={p.summary ?? undefined} image={cover} path={`/projects/${p.slug}/`}>
+  <div class="wrap">
+    <p class="crumb"><a href="/#work">← All projects</a></p>
+    <div class="pagehead">
+      <span class="eyebrow">{statusLabel(p.status)}</span>
+      <h1>{p.title}</h1>
+      <div class="facts">
+        <span>{p.project_type}</span><span>{p.location}</span>
+        {fmt(p.start_date) && <span>Started {fmt(p.start_date)}</span>}
+        {fmt(p.end_date) && <span>{p.status === 'completed' ? 'Finished' : 'Expected finish'} {fmt(p.end_date)}</span>}
+        {p.status === 'ongoing' && <span>{p.progress_pct}% complete</span>}
+      </div>
+    </div>
+    {cover && <div class="cover"><img src={cover} alt={p.title} fetchpriority="high" /></div>}
+    <div class="prose">
+      {p.summary && <p style="font-size:19px;font-weight:600">{p.summary}</p>}
+      {p.description && <p>{p.description}</p>}
+      {sections.map(([h, t]) => (<><h2>{h}</h2><p>{t}</p></>))}
+    </div>
+    {images.length > 0 && (
+      <div class="gallery">
+        {images.map((im) => <img src={mediaUrl(im.image_path)!} alt={im.alt_text ?? im.caption ?? p.title} loading="lazy" />)}
+      </div>
+    )}
+    <p style="margin:48px 0 80px"><a class="btn btn-gold" href="/#contact">Start a similar project</a></p>
+  </div>
+</Base>

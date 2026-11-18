@@ -1,0 +1,44 @@
+---
+import { supabaseUrl, supabaseKey } from '../lib/data';
+---
+<form class="f" id="lead-form" novalidate data-endpoint={`${supabaseUrl}/functions/v1/submit-lead`} data-key={supabaseKey}>
+  <label>Your name<input name="full_name" type="text" autocomplete="name" required /></label>
+  <label>Email<input name="email" type="email" autocomplete="email" required /></label>
+  <label>Phone or WhatsApp (optional)<input name="phone" type="tel" autocomplete="tel" /></label>
+  <label>Type of work (optional)<input name="project_type" type="text" placeholder="e.g. house, renovation, road" /></label>
+  <label>Where is the site? (optional)<input name="location" type="text" /></label>
+  <label>What do you need?<textarea name="message" required minlength="10"></textarea></label>
+  <div class="hp" aria-hidden="true"><label>Website<input name="website" type="text" tabindex="-1" autocomplete="off" /></label></div>
+  <button class="btn btn-ink" type="submit">Send message</button>
+  <p class="msg" id="lead-msg" role="status" aria-live="polite"></p>
+</form>
+<script>
+  const form = document.getElementById('lead-form') as HTMLFormElement | null;
+  const msg = document.getElementById('lead-msg')!;
+  const opened = Date.now();
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+    const btn = form.querySelector('button')!;
+    msg.className = 'msg';
+    msg.textContent = 'Sending...';
+    btn.disabled = true;
+    try {
+      const res = await fetch(form.dataset.endpoint!, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: form.dataset.key!, Authorization: `Bearer ${form.dataset.key}` },
+        body: JSON.stringify({ ...data, kind: data.project_type ? 'quote' : 'contact', opened_at: opened }),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(out.error || 'Something went wrong. Please call or WhatsApp us.');
+      form.reset();
+      msg.className = 'msg ok';
+      msg.textContent = 'Thank you. We have your message and will reply soon.';
+    } catch (err) {
+      msg.className = 'msg err';
+      msg.textContent = (err as Error).message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
