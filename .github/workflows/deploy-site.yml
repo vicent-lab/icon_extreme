@@ -23,7 +23,7 @@ jobs:
       PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL || secrets.SUPABASE_URL || 'https://ioktaopzboaremkamwmd.supabase.co' }}
       PUBLIC_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY || 'sb_publishable_rqNoDn6qaIfo9pRX2a26Mg_z2aNJhOl' }}
       PUBLIC_APP_URL: ${{ vars.APP_URL || 'https://icon-extreme.pages.dev' }}
-      SITE_URL: ${{ vars.SITE_URL || 'https://icon-site.pages.dev' }}
+      SITE_URL: ${{ vars.SITE_URL || 'https://icon-site-bv6.pages.dev' }}
     steps:
       - name: Check Cloudflare keys are set (names only, never values)
         env:
@@ -62,8 +62,10 @@ jobs:
       - name: Smoke test (site is up, form door rejects a bad message)
         run: |
           sleep 15
-          code=$(curl -s -o /dev/null -w '%{http_code}' https://icon-site.pages.dev/)
-          echo "site: $code"; [ "$code" = "200" ]
+          # check it is OUR page (look for our own marker), not just any page at that address
+          curl -s "$SITE_URL/" -o page.html
+          grep -q 'Team &amp; client login' page.html || { echo "::error::$SITE_URL is not serving the ICON site"; exit 1; }
+          echo "site: ours" 
           code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$PUBLIC_SUPABASE_URL/functions/v1/submit-lead" \
             -H 'Content-Type: application/json' -H "apikey: $PUBLIC_SUPABASE_ANON_KEY" -d '{"full_name":"x","email":"bad","message":"hi"}')
           echo "form (expect 400): $code"; [ "$code" = "400" ]
