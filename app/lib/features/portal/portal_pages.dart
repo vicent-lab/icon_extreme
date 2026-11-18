@@ -7,6 +7,13 @@ import '../../core/format.dart';
 import '../../core/widgets.dart';
 import '../../data/models/project.dart';
 import '../../data/providers.dart';
+import '../../data/models/collab.dart';
+import '../collab/approvals_view.dart';
+import '../collab/chat_view.dart';
+import '../collab/collab_providers.dart';
+import '../collab/notification_bell.dart';
+import '../collab/payments_view.dart';
+import '../install/install_card.dart';
 import '../projects/project_providers.dart';
 import '../projects/tabs/documents_tab.dart' show fileSize, openDocument;
 import '../projects/tabs/site_log_tab.dart' show SiteLogBody;
@@ -25,6 +32,7 @@ class PortalShell extends ConsumerWidget {
         backgroundColor: Colors.white,
         title: const BrandMark(size: 30),
         actions: [
+          const NotificationBell(path: '/portal/notifications'),
           TextButton.icon(
             onPressed: () => context.go('/portal'),
             icon: const Icon(Icons.home_outlined, size: 18),
@@ -55,7 +63,12 @@ class PortalHome extends ConsumerWidget {
       child: AsyncBody<List<Project>>(
         value: ref.watch(myProjectsProvider),
         onRetry: () => ref.invalidate(myProjectsProvider),
-        builder: (rows) => rows.isEmpty
+        builder: (rows) => Column(children: [const InstallCard(), Expanded(child: _list(rows))]),
+      ),
+    );
+  }
+
+  Widget _list(List<Project> rows) => rows.isEmpty
             ? const EmptyState('No project is linked to your account yet. Your ICON contact will add you to it, and it will appear here. Questions? Call or message us.')
             : ListView.separated(
                 padding: const EdgeInsets.only(bottom: 24),
@@ -80,15 +93,15 @@ class PortalHome extends ConsumerWidget {
                     ),
                   );
                 },
-              ),
-      ),
-    );
-  }
+              );
 }
 
 class PortalProjectPage extends ConsumerWidget {
-  const PortalProjectPage({super.key, required this.id});
+  const PortalProjectPage({super.key, required this.id, this.tab});
   final int id;
+  final String? tab; // opens straight onto a tab, e.g. from a notification
+
+  static const _keys = ['overview', 'schedule', 'updates', 'messages', 'approvals', 'payments', 'documents'];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => AsyncBody<Project?>(
@@ -96,8 +109,10 @@ class PortalProjectPage extends ConsumerWidget {
         onRetry: () => ref.invalidate(projectProvider(id)),
         builder: (p) {
           if (p == null) return const EmptyState('This project was not found, or it is not linked to your account.');
+          final start = _keys.indexOf(tab ?? '');
           return DefaultTabController(
-            length: 4,
+            length: _keys.length,
+            initialIndex: start < 0 ? 0 : start,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -113,13 +128,17 @@ class PortalProjectPage extends ConsumerWidget {
                 ]),
                 const SizedBox(height: 8),
                 const TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [
-                  Tab(text: 'Overview'), Tab(text: 'Schedule'), Tab(text: 'Site updates'), Tab(text: 'Documents'),
+                  Tab(text: 'Overview'), Tab(text: 'Schedule'), Tab(text: 'Site updates'), Tab(text: 'Messages'),
+                  Tab(text: 'Approvals'), Tab(text: 'Payments'), Tab(text: 'Documents'),
                 ]),
                 Expanded(
                   child: TabBarView(children: [
                     _PortalOverview(project: p),
                     _PortalSchedule(projectId: id),
                     _PortalUpdates(projectId: id),
+                    ChatView(projectId: id),
+                    ApprovalsView(projectId: id, asClient: true),
+                    PaymentsView(projectId: id, canEdit: false),
                     _PortalDocuments(projectId: id),
                   ]),
                 ),
@@ -130,13 +149,21 @@ class PortalProjectPage extends ConsumerWidget {
       );
 }
 
-class _PortalOverview extends StatelessWidget {
+/// "Where do we stand?" in one screen: progress, what is happening now and next, and what waits on the client.
+class _PortalOverview extends ConsumerWidget {
   const _PortalOverview({required this.project});
   final Project project;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = project;
+    final phases = ref.watch(phasesProvider(p.id)).value ?? const <Phase>[];
+    final waiting = (ref.watch(requestsProvider(p.id)).value ?? const []).where((r) => r.status == RequestStatus.awaitingClient).length;
+    final latest = (ref.watch(logsProvider(p.id)).value ?? const <SiteLog>[]).firstOrNull;
+    final now = phases.where((x) => x.status == 'in_progress' || x.status == 'delayed').firstOrNull;
+    final next = phases.where((x) => x.status == 'planned').firstOrNull;
+    void go(int tab) => DefaultTabController.of(context).animateTo(tab);
+
     Widget row(String k, String? v) => v == null || v.isEmpty
         ? const SizedBox.shrink()
         : Padding(
@@ -146,28 +173,58 @@ class _PortalOverview extends StatelessWidget {
               Expanded(child: Text(v)),
             ]),
           );
+
     return ListView(padding: const EdgeInsets.only(top: 16, bottom: 24), children: [
+      if (waiting > 0)
+        Card(
+          color: const Color(0xFFFCEBD3),
+          child: ListTile(
+            onTap: () => go(4),
+            leading: const Icon(Icons.task_alt, color: Color(0xFF8A4B0F)),
+            title: Text(waiting == 1 ? '1 thing is waiting for your approval' : '$waiting things are waiting for your approval',
+                style: const TextStyle(fontWeight: FontWeight.w800)),
+            trailing: const Icon(Icons.chevron_right),
+          ),
+        ),
       Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${p.progressPct}% complete', style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text('${p.progressPct}% complete', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
             const SizedBox(height: 8),
             LinearProgressIndicator(value: p.progressPct / 100, minHeight: 10, borderRadius: BorderRadius.circular(5)),
+            const SizedBox(height: 14),
+            row('Happening now', now == null ? null : '${now.name}${now.status == 'delayed' ? ' (delayed)' : ''}'),
+            row('Coming next', next?.name),
+            row('Expected finish', p.endDate == null ? null : dateShort(p.endDate)),
           ]),
         ),
       ),
+      if (latest != null) ...[
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            onTap: () => go(2),
+            title: Text('Latest update · ${dateShort(latest.date)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(latest.workDone, maxLines: 3, overflow: TextOverflow.ellipsis),
+            trailing: const Icon(Icons.chevron_right),
+          ),
+        ),
+      ],
       const SizedBox(height: 12),
       Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(children: [
-            row('Starts', p.startDate == null ? null : dateShort(p.startDate)),
-            row('Expected finish', p.endDate == null ? null : dateShort(p.endDate)),
-            row('About', p.summary),
-          ]),
+        child: ListTile(
+          onTap: () => go(3),
+          leading: const Icon(Icons.chat_bubble_outline),
+          title: const Text('Message the team', style: TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: const Text('Questions, photos and quick updates, all in one place.'),
+          trailing: const Icon(Icons.chevron_right),
         ),
       ),
+      if (p.summary != null) ...[
+        const SizedBox(height: 12),
+        Card(child: Padding(padding: const EdgeInsets.all(20), child: Column(children: [row('About', p.summary), row('Starts', p.startDate == null ? null : dateShort(p.startDate))]))),
+      ],
     ]);
   }
 }

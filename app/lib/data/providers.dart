@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/forms/record_store.dart';
 import 'models/profile.dart';
+import 'repositories/collab_repository.dart';
 import 'repositories/content_repository.dart';
 import 'repositories/lead_repository.dart';
 import 'repositories/profile_repository.dart';
@@ -22,6 +23,7 @@ final profileRepoProvider = Provider((ref) => ProfileRepository(ref.watch(supaba
 final projectRepoProvider = Provider((ref) => ProjectRepository(ref.watch(supabaseProvider)));
 final childrenProvider = Provider((ref) => ProjectChildren(ref.watch(supabaseProvider)));
 final storageRepoProvider = Provider((ref) => StorageRepository(ref.watch(supabaseProvider)));
+final collabRepoProvider = Provider((ref) => CollabRepository(ref.watch(supabaseProvider)));
 final contentRepoProvider = Provider((ref) => ContentRepository(ref.watch(supabaseProvider)));
 final settingsRepoProvider = Provider((ref) => SettingsRepository(ref.watch(supabaseProvider)));
 final statsRepoProvider = Provider((ref) => StatsRepository(ref.watch(supabaseProvider)));

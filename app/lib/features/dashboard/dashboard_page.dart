@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/roles.dart';
 import '../../core/widgets.dart';
 import '../../data/providers.dart';
+import '../install/install_card.dart';
 import '../projects/projects_page.dart' show canRunProjects;
 
 class _Stat {
@@ -41,7 +42,7 @@ class DashboardPage extends ConsumerWidget {
         builder: (stats) => stats.isEmpty
             ? const EmptyState('Nothing to show for your role yet.')
             : SingleChildScrollView(
-                child: Wrap(spacing: 16, runSpacing: 16, children: [
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const InstallCard(), Wrap(spacing: 16, runSpacing: 16, children: [
                   for (final s in stats)
                     SizedBox(
                       width: 220,
@@ -56,7 +57,7 @@ class DashboardPage extends ConsumerWidget {
                         ),
                       ),
                     ),
-                ]),
+                ])]),
               ),
       ),
     );

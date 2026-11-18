@@ -6,6 +6,7 @@ import '../../core/errors.dart';
 import '../../core/widgets.dart';
 import '../../data/models/profile.dart';
 import '../../data/providers.dart';
+import '../collab/alerts_card.dart';
 
 /// "My profile": the only screen every role shares. Name, phone, password, sign out.
 class ProfilePage extends ConsumerWidget {
@@ -27,6 +28,8 @@ class ProfilePage extends ConsumerWidget {
                       constraints: const BoxConstraints(maxWidth: 560),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         _DetailsCard(me: me),
+                        const SizedBox(height: 16),
+                        const AlertsCard(),
                         const SizedBox(height: 16),
                         const _PasswordCard(),
                         const SizedBox(height: 16),

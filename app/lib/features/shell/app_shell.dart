@@ -7,6 +7,7 @@ import '../../core/design/theme.dart';
 import '../../core/roles.dart';
 import '../../core/widgets.dart';
 import '../../data/providers.dart';
+import '../collab/notification_bell.dart';
 
 class _Item {
   const _Item(this.section, this.path, this.label, this.icon);
@@ -58,7 +59,10 @@ class AppShell extends ConsumerWidget {
     final user = _UserTile(name: profile?.displayName ?? '', role: role);
 
     final drawerBody = Column(children: [
-      const Padding(padding: EdgeInsets.fromLTRB(20, 28, 20, 16), child: BrandMark()),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 24, 8, 12),
+        child: Row(children: [const BrandMark(), const Spacer(), if (wide) const NotificationBell(path: '/notifications')]),
+      ),
       Expanded(child: nav),
       const Divider(),
       user,
@@ -74,7 +78,7 @@ class AppShell extends ConsumerWidget {
       );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('ICON'), backgroundColor: Colors.white),
+      appBar: AppBar(title: const BrandMark(size: 30), backgroundColor: Colors.white, actions: const [NotificationBell(path: '/notifications'), SizedBox(width: 8)]),
       drawer: Drawer(child: drawerBody),
       body: child,
     );

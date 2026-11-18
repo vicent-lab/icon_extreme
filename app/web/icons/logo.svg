@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ICON Construction mark">
+  <rect width="512" height="512" rx="112" fill="#17251F"/>
+  <path d="M64 256C124 158 198 118 256 118s132 40 192 138c-60 98-134 138-192 138S124 354 64 256Z" fill="none" stroke="#C9A227" stroke-width="22" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="92" fill="#C9A227"/>
+  <path d="M256 200 308 246v54H204v-54Z" fill="#17251F"/>
+  <rect x="242" y="268" width="28" height="32" rx="3" fill="#C9A227"/>
+</svg>

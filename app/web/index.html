@@ -1,58 +1,81 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!--
-    Uncomment the tag below to lay the app out underneath the parts of the
-    screen that the device obstructs, such as a display cutout, the rounded
-    corners of the screen, or a home indicator.
-
-    Without it, the browser keeps the app clear of them, and `SafeArea` and
-    `MediaQuery.paddingOf` report no padding. With it, the app covers the whole
-    screen, and it is up to the app to keep its own content out of the way,
-    which is what `SafeArea` is for.
-  -->
-  <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"> -->
-
-  <!-- iOS meta tags & icons -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ICON Construction: projects, site updates, approvals and messages in one place.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#17251F">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="icon_extreme">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>icon_extreme</title>
+  <meta name="apple-mobile-web-app-title" content="ICON">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="icons/logo.svg">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <title>ICON Construction</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    body{margin:0;background:#F4F1EA}
+    #splash{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4F1EA}
+    #splash img{width:72px;height:72px;animation:p 1.4s ease-in-out infinite}
+    @keyframes p{50%{opacity:.5}}
+  </style>
+  <script>
+    // "Install ICON": the browser offers installing once; we keep that offer so our own button can use it.
+    window.iconInstall = { prompt: null };
+    window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); window.iconInstall.prompt = e; });
+    window.addEventListener('appinstalled', function () { window.iconInstall.prompt = null; });
+    window.iconInstallState = function () {
+      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return 'installed';
+      if (window.iconInstall.prompt) return 'ready';
+      if (/iphone|ipad|ipod/i.test(navigator.userAgent)) return 'ios';
+      return 'none';
+    };
+    window.addEventListener('flutter-first-frame', function () { var s = document.getElementById('splash'); if (s) s.remove(); });
+    window.iconInstallNow = function () {
+      var p = window.iconInstall.prompt;
+      if (!p) return Promise.resolve('unavailable');
+      p.prompt();
+      return p.userChoice.then(function (r) { window.iconInstall.prompt = null; return r.outcome; });
+    };
+
+    // Phone alerts. The app calls these; the background worker (push-sw.js) shows the alerts.
+    function iconB64ToBytes(s) {
+      var pad = '='.repeat((4 - s.length % 4) % 4), b = atob((s + pad).replace(/-/g, '+').replace(/_/g, '/'));
+      var out = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) out[i] = b.charCodeAt(i); return out;
+    }
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () { navigator.serviceWorker.register('push-sw.js').catch(function () {}); });
+    }
+    window.iconPushState = function () {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        return Promise.resolve(/iphone|ipad|ipod/i.test(navigator.userAgent) ? 'needs-install' : 'unsupported');
+      }
+      if (Notification.permission === 'denied') return Promise.resolve('blocked');
+      return navigator.serviceWorker.ready.then(function (r) { return r.pushManager.getSubscription(); })
+        .then(function (s) { return s ? 'on' : 'off'; }).catch(function () { return 'off'; });
+    };
+    // returns the subscription as JSON text, or "error:<reason>"
+    window.iconPushEnable = function (publicKey) {
+      return Notification.requestPermission().then(function (p) {
+        if (p !== 'granted') return 'error:blocked';
+        return navigator.serviceWorker.register('push-sw.js').then(function () { return navigator.serviceWorker.ready; })
+          .then(function (r) { return r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: iconB64ToBytes(publicKey) }); })
+          .then(function (s) { return JSON.stringify(s.toJSON()); });
+      }).catch(function (e) { return 'error:' + (e && e.message ? e.message : e); });
+    };
+    // returns the endpoint that was switched off ('' when none)
+    window.iconPushDisable = function () {
+      return navigator.serviceWorker.ready.then(function (r) { return r.pushManager.getSubscription(); })
+        .then(function (s) { if (!s) return ''; var ep = s.endpoint; return s.unsubscribe().then(function () { return ep; }); })
+        .catch(function () { return ''; });
+    };
+  </script>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <div id="splash"><img src="icons/logo.svg" alt="ICON"></div>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

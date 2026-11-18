@@ -11,5 +11,7 @@ for f in "$here"/../migrations/*.sql; do
   echo "migration: $(basename "$f")"
   psql -v ON_ERROR_STOP=1 -q -1 -d "$db" -f "$f"
 done
-psql -v ON_ERROR_STOP=1 -q -o /dev/null -d "$db" -f "$here/rls.sql" 2>&1 | sed -e "s/^psql:[^ ]* NOTICE:  //"
+for t in rls collab; do
+  psql -v ON_ERROR_STOP=1 -q -o /dev/null -d "$db" -f "$here/$t.sql" 2>&1 | sed -e "s/^psql:[^ ]* NOTICE:  //"
+done
 echo "ALL ACCESS-RULE TESTS PASSED"

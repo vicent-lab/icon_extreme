@@ -1,21 +1,25 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../design/theme.dart';
-
-/// The ICON mark. One place, so swapping in the real logo later changes every screen at once.
+/// The ICON eye logo. One place, so every screen shows the same mark.
 class BrandMark extends StatelessWidget {
-  const BrandMark({super.key, this.size = 36});
+  const BrandMark({super.key, this.size = 36, this.showName = true, this.light = false});
   final double size;
+  final bool showName, light;
 
   @override
   Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(color: Brand.ink, borderRadius: BorderRadius.circular(size / 4)),
-          child: Icon(Icons.apartment, color: Brand.gold, size: size * 0.56),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(size * 0.22),
+          child: Image.asset('assets/logo.png', width: size, height: size, semanticLabel: 'ICON'),
         ),
-        const SizedBox(width: 10),
-        Text('ICON', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+        if (showName) ...[
+          const SizedBox(width: 10),
+          Text('ICON',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                    color: light ? Colors.white : null,
+                  )),
+        ],
       ]);
 }

@@ -12,6 +12,7 @@ import '../features/auth/accept_page.dart';
 import '../features/auth/forgot_page.dart';
 import '../features/auth/login_page.dart';
 import '../features/auth/set_password_page.dart';
+import '../features/collab/notifications_page.dart';
 import '../features/content/content_page.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/leads/leads_page.dart';
@@ -102,10 +103,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/portal/project/:id',
             builder: (_, state) {
               final id = int.tryParse(state.pathParameters['id'] ?? '');
-              return id == null ? const NoAccessView() : PortalProjectPage(id: id);
+              return id == null ? const NoAccessView() : PortalProjectPage(id: id, tab: state.uri.queryParameters['tab']);
             },
           ),
           GoRoute(path: '/portal/profile', builder: (_, _) => const ProfilePage()),
+          GoRoute(path: '/portal/notifications', builder: (_, _) => const NotificationsPage()),
         ],
       ),
       // ---- staff ----
@@ -119,7 +121,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/projects/:id',
             builder: (_, state) {
               final id = int.tryParse(state.pathParameters['id'] ?? '');
-              return gate(Section.projects, id == null ? const NoAccessView() : ProjectDetailPage(id: id));
+              return gate(Section.projects, id == null ? const NoAccessView() : ProjectDetailPage(id: id, tab: state.uri.queryParameters['tab']));
             },
           ),
           GoRoute(path: '/services', builder: (_, _) => gate(Section.services, ContentPage(spec: ContentSpec.services))),
@@ -129,6 +131,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/users', builder: (_, _) => gate(Section.users, const UsersPage())),
           GoRoute(path: '/settings', builder: (_, _) => gate(Section.settings, const SettingsPage())),
           GoRoute(path: '/profile', builder: (_, _) => const ProfilePage()),
+          GoRoute(path: '/notifications', builder: (_, _) => const NotificationsPage()),
         ],
       ),
     ],

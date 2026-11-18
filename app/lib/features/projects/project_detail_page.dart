@@ -7,6 +7,9 @@ import '../../core/format.dart';
 import '../../core/widgets.dart';
 import '../../data/models/project.dart';
 import '../../data/providers.dart';
+import '../collab/approvals_view.dart';
+import '../collab/chat_view.dart';
+import '../collab/payments_view.dart';
 import 'project_form.dart';
 import 'project_providers.dart';
 import 'projects_page.dart' show canRunProjects;
@@ -18,8 +21,9 @@ import 'tabs/site_log_tab.dart';
 
 /// Staff view of one project. Clients use the read-only portal instead (features/portal).
 class ProjectDetailPage extends ConsumerWidget {
-  const ProjectDetailPage({super.key, required this.id});
+  const ProjectDetailPage({super.key, required this.id, this.tab});
   final int id;
+  final String? tab; // opens straight onto a tab, e.g. from a notification
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,16 +34,21 @@ class ProjectDetailPage extends ConsumerWidget {
       onRetry: () => ref.invalidate(projectProvider(id)),
       builder: (p) {
         if (p == null) return const EmptyState('This project was not found.');
-        final tabs = <(String, Widget)>[
-          ('Overview', OverviewTab(project: p, ops: ops)),
-          if (ops) ('Schedule', ScheduleTab(projectId: id)),
-          if (ops) ('Site log', SiteLogTab(projectId: id)),
-          if (ops) ('Documents', DocumentsTab(projectId: id)),
-          if (ops) ('Budget', BudgetTab(projectId: id, budget: p.budgetUgx)),
+        final tabs = <(String, String, Widget)>[
+          ('overview', 'Overview', OverviewTab(project: p, ops: ops)),
+          if (ops) ('schedule', 'Schedule', ScheduleTab(projectId: id)),
+          if (ops) ('log', 'Site log', SiteLogTab(projectId: id)),
+          if (ops) ('messages', 'Messages', ChatView(projectId: id)),
+          if (ops) ('approvals', 'Approvals', ApprovalsView(projectId: id, asClient: false)),
+          if (ops) ('payments', 'Payments', PaymentsView(projectId: id, canEdit: true)),
+          if (ops) ('documents', 'Documents', DocumentsTab(projectId: id)),
+          if (ops) ('budget', 'Budget', BudgetTab(projectId: id, budget: p.budgetUgx)),
         ];
+        final start = tabs.indexWhere((t) => t.$1 == tab);
         final narrow = MediaQuery.sizeOf(context).width < 640;
         return DefaultTabController(
           length: tabs.length,
+          initialIndex: start < 0 ? 0 : start,
           child: Padding(
             padding: EdgeInsets.fromLTRB(narrow ? 12 : 28, 20, narrow ? 12 : 28, 0),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -63,8 +72,8 @@ class ProjectDetailPage extends ConsumerWidget {
                 if (ops && narrow) IconButton(tooltip: 'Edit project', onPressed: () => openProjectForm(context, ref, p), icon: const Icon(Icons.edit_outlined)),
               ]),
               const SizedBox(height: Space.sm),
-              TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [for (final t in tabs) Tab(text: t.$1)]),
-              Expanded(child: TabBarView(children: [for (final t in tabs) t.$2])),
+              TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [for (final t in tabs) Tab(text: t.$2)]),
+              Expanded(child: TabBarView(children: [for (final t in tabs) t.$3])),
             ]),
           ),
         );
